@@ -23,15 +23,33 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.sevapp.app"
+      "package": "com.sevapp.app",
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED"
+      ]
     },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#ffffff",
+          "sounds": [
+            "./assets/noti.mp3"
+          ]
+        }
+      ]
+    ],
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "scheme": "exp",
     "extra": {
       "supabaseUrl": "${EXPO_PUBLIC_SUPABASE_URL}",
-      "supabaseAnonKey": "${EXPO_PUBLIC_SUPABASE_ANON_KEY}"
+      "supabaseAnonKey": "${EXPO_PUBLIC_SUPABASE_ANON_KEY}",
+      "eas": {
+        "projectId": "36f9875b-b881-4688-8a85-2792a9aeebad"
+      }
     }
   }
 }

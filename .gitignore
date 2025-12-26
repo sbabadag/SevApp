@@ -16,6 +16,12 @@ dist/
 .env.local
 .env.*.local
 
+# Firebase/Google service account keys
+*-*.json
+google-services.json
+google-services.json.bak
+firebase-adminsdk-*.json
+
 # macOS
 .DS_Store
 

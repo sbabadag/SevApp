@@ -265,3 +265,125 @@ CREATE TRIGGER update_product_rating_on_review
   AFTER INSERT OR UPDATE OR DELETE ON reviews
   FOR EACH ROW EXECUTE FUNCTION update_product_rating();
 
+-- ============================================
+-- NOTIFICATIONS TABLE
+-- ============================================
+CREATE TABLE notifications (
+  id BIGSERIAL PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  title VARCHAR(255) NOT NULL,
+  message TEXT NOT NULL,
+  type VARCHAR(50) NOT NULL DEFAULT 'general' CHECK (type IN ('order', 'promotion', 'general', 'system')),
+  data JSONB DEFAULT '{}',
+  read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes for notifications
+CREATE INDEX idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX idx_notifications_read ON notifications(user_id, read);
+CREATE INDEX idx_notifications_created_at ON notifications(created_at DESC);
+
+-- RLS Policies for notifications
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+
+-- Users can view their own notifications
+CREATE POLICY "Users can view own notifications"
+  ON notifications FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- Users can update their own notifications (mark as read)
+CREATE POLICY "Users can update own notifications"
+  ON notifications FOR UPDATE
+  USING (auth.uid() = user_id);
+
+-- System can insert notifications for users
+CREATE POLICY "System can insert notifications"
+  ON notifications FOR INSERT
+  WITH CHECK (true);
+
+-- Function to update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_notifications_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_notifications_updated_at
+  BEFORE UPDATE ON notifications
+  FOR EACH ROW EXECUTE FUNCTION update_notifications_updated_at();
+
+-- Function to create order notifications on INSERT
+CREATE OR REPLACE FUNCTION create_order_notification_on_insert()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO notifications (user_id, title, message, type, data)
+  VALUES (
+    NEW.user_id,
+    CASE 
+      WHEN NEW.status = 'processing' THEN 'Order Processing'
+      WHEN NEW.status = 'shipped' THEN 'Order Shipped'
+      WHEN NEW.status = 'delivered' THEN 'Order Delivered'
+      WHEN NEW.status = 'cancelled' THEN 'Order Cancelled'
+      ELSE 'Order Created'
+    END,
+    CASE 
+      WHEN NEW.status = 'processing' THEN 'Your order #' || NEW.id || ' is being processed'
+      WHEN NEW.status = 'shipped' THEN 'Your order #' || NEW.id || ' has been shipped'
+      WHEN NEW.status = 'delivered' THEN 'Your order #' || NEW.id || ' has been delivered'
+      WHEN NEW.status = 'cancelled' THEN 'Your order #' || NEW.id || ' has been cancelled'
+      ELSE 'Your order #' || NEW.id || ' has been created'
+    END,
+    'order',
+    jsonb_build_object('order_id', NEW.id, 'status', NEW.status)
+  );
+  RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Function to create order notifications on UPDATE (only when status changes)
+CREATE OR REPLACE FUNCTION create_order_notification_on_update()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Only create notification if status actually changed
+  IF NEW.status IS DISTINCT FROM OLD.status THEN
+    INSERT INTO notifications (user_id, title, message, type, data)
+    VALUES (
+      NEW.user_id,
+      CASE 
+        WHEN NEW.status = 'processing' THEN 'Order Processing'
+        WHEN NEW.status = 'shipped' THEN 'Order Shipped'
+        WHEN NEW.status = 'delivered' THEN 'Order Delivered'
+        WHEN NEW.status = 'cancelled' THEN 'Order Cancelled'
+        ELSE 'Order Updated'
+      END,
+      CASE 
+        WHEN NEW.status = 'processing' THEN 'Your order #' || NEW.id || ' is being processed'
+        WHEN NEW.status = 'shipped' THEN 'Your order #' || NEW.id || ' has been shipped'
+        WHEN NEW.status = 'delivered' THEN 'Your order #' || NEW.id || ' has been delivered'
+        WHEN NEW.status = 'cancelled' THEN 'Your order #' || NEW.id || ' has been cancelled'
+        ELSE 'Your order #' || NEW.id || ' status has been updated'
+      END,
+      'order',
+      jsonb_build_object('order_id', NEW.id, 'status', NEW.status)
+    );
+  END IF;
+  RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Trigger for INSERT
+CREATE TRIGGER create_order_notification_on_insert_trigger
+  AFTER INSERT ON orders
+  FOR EACH ROW 
+  EXECUTE FUNCTION create_order_notification_on_insert();
+
+-- Trigger for UPDATE (only fires when status column changes)
+CREATE TRIGGER create_order_notification_on_update_trigger
+  AFTER UPDATE OF status ON orders
+  FOR EACH ROW 
+  EXECUTE FUNCTION create_order_notification_on_update();
+

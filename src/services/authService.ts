@@ -56,17 +56,44 @@ class AuthService {
    */
   async signIn(data: SignInData): Promise<AuthResponse> {
     try {
+      console.log('🔐 AuthService: Signing in user with email:', data.email);
       const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       });
 
+      if (error) {
+        console.error('❌ AuthService: Sign in error:', error.message);
+        return {
+          user: null,
+          session: null,
+          error,
+        };
+      }
+
+      if (authData.session) {
+        console.log('✅ AuthService: Sign in successful - Session created');
+        console.log('✅ AuthService: Session will be automatically saved to secure storage');
+        console.log('✅ AuthService: Session expires at:', new Date(authData.session.expires_at! * 1000).toLocaleString());
+        
+        // Verify session is saved by immediately checking
+        setTimeout(async () => {
+          const { data: { session: savedSession } } = await supabase.auth.getSession();
+          if (savedSession) {
+            console.log('✅ AuthService: Session verified as saved successfully');
+          } else {
+            console.warn('⚠️ AuthService: Session not found after sign in - may not be persisting');
+          }
+        }, 500);
+      }
+
       return {
         user: authData.user,
         session: authData.session,
-        error,
+        error: null,
       };
     } catch (error) {
+      console.error('❌ AuthService: Sign in exception:', error);
       return {
         user: null,
         session: null,
@@ -80,22 +107,50 @@ class AuthService {
    */
   async signOut(): Promise<{ error: AuthError | null }> {
     try {
+      console.log('🔐 AuthService: Signing out user...');
       const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('❌ AuthService: Sign out error:', error.message);
+      } else {
+        console.log('✅ AuthService: Sign out successful - Session cleared from storage');
+      }
       return { error };
     } catch (error) {
+      console.error('❌ AuthService: Sign out exception:', error);
       return { error: error as AuthError };
     }
   }
 
   /**
    * Get the current session
+   * This retrieves the saved session from device storage (auto-login)
    */
   async getSession(): Promise<Session | null> {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      console.log('🔐 AuthService: Retrieving saved session from storage...');
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('❌ AuthService: Error getting session:', error);
+        return null;
+      }
+      
+      if (session) {
+        console.log('✅ AuthService: Session retrieved successfully');
+        console.log('✅ AuthService: Session valid until:', new Date(session.expires_at! * 1000).toLocaleString());
+        
+        // Check if session is expired
+        const now = Math.floor(Date.now() / 1000);
+        if (session.expires_at && session.expires_at < now) {
+          console.warn('⚠️ AuthService: Session expired, will need to refresh');
+        }
+      } else {
+        console.log('ℹ️ AuthService: No saved session found');
+      }
+      
       return session;
     } catch (error) {
-      console.error('Error getting session:', error);
+      console.error('❌ AuthService: Exception getting session:', error);
       return null;
     }
   }

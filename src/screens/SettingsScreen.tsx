@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { NavigationProp } from '../types';
+import { testNotificationSound } from '../utils/testSound';
+import { registerForPushNotificationsAsync } from '../utils/notifications';
+import * as Notifications from 'expo-notifications';
 
 interface SettingsScreenProps {
   navigation: NavigationProp<'Settings'>;
@@ -17,6 +20,7 @@ interface SettingItem {
   type?: 'switch';
   value?: boolean;
   onValueChange?: (value: boolean) => void;
+  onPress?: () => void | Promise<void>;
 }
 
 interface SettingsGroup {
@@ -27,6 +31,42 @@ interface SettingsGroup {
 const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(true);
   const [emailNotifications, setEmailNotifications] = useState<boolean>(true);
+  const [permissionStatus, setPermissionStatus] = useState<string>('checking');
+
+  // Check permission status on mount
+  React.useEffect(() => {
+    checkPermissionStatus();
+  }, []);
+
+  const checkPermissionStatus = async () => {
+    const { status } = await Notifications.getPermissionsAsync();
+    setPermissionStatus(status);
+  };
+
+  const requestPermissions = async () => {
+    try {
+      console.log('SettingsScreen: Requesting notification permissions...');
+      const token = await registerForPushNotificationsAsync();
+      if (token) {
+        Alert.alert(
+          '✅ İzin Verildi',
+          'Bildirim izinleri başarıyla verildi! Artık bildirimler alabilirsiniz.',
+          [{ text: 'Tamam' }]
+        );
+        await checkPermissionStatus();
+      } else {
+        Alert.alert(
+          '❌ İzin Reddedildi',
+          'Bildirim izinleri verilmedi. Lütfen telefon ayarlarından manuel olarak izin verin:\n\nAyarlar → Uygulamalar → SevApp → Bildirimler',
+          [{ text: 'Tamam' }]
+        );
+        await checkPermissionStatus();
+      }
+    } catch (error) {
+      console.error('SettingsScreen: Error requesting permissions:', error);
+      Alert.alert('Hata', 'İzin istenirken bir hata oluştu.');
+    }
+  };
 
   const settingsGroups: SettingsGroup[] = [
     {
@@ -55,6 +95,58 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
           type: 'switch',
           value: emailNotifications,
           onValueChange: setEmailNotifications,
+        },
+        {
+          id: 9,
+          title: permissionStatus === 'granted' 
+            ? '✅ Bildirim İzinleri Aktif' 
+            : permissionStatus === 'denied'
+            ? '❌ Bildirim İzinleri Reddedildi'
+            : '⚠️ Bildirim İzinleri İstenmedi',
+          icon: permissionStatus === 'granted' ? 'checkmark-circle-outline' : 'alert-circle-outline',
+          screen: null,
+          onPress: permissionStatus === 'granted' 
+            ? undefined 
+            : requestPermissions,
+        },
+        {
+          id: 10,
+          title: 'Test Notification Sound',
+          icon: 'volume-high-outline',
+          screen: null,
+          onPress: async () => {
+            // Check permissions first
+            const { status } = await Notifications.getPermissionsAsync();
+            if (status !== 'granted') {
+              Alert.alert(
+                'İzin Gerekli',
+                'Bildirim izinleri verilmedi. Önce izin vermeniz gerekiyor.',
+                [
+                  { text: 'İptal', style: 'cancel' },
+                  {
+                    text: 'İzin Ver',
+                    onPress: requestPermissions,
+                  },
+                ]
+              );
+              return;
+            }
+
+            Alert.alert(
+              'Ses Testi',
+              'Test bildirimi gönderilecek. Cihazınızın sessiz modda olmadığından emin olun.',
+              [
+                { text: 'İptal', style: 'cancel' },
+                {
+                  text: 'Test Et',
+                  onPress: async () => {
+                    await testNotificationSound();
+                    Alert.alert('Test Gönderildi', 'Bildirim sesini duydunuz mu?');
+                  },
+                },
+              ]
+            );
+          },
         },
       ],
     },
@@ -85,7 +177,13 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
               <TouchableOpacity
                 key={item.id}
                 style={styles.settingItem}
-                onPress={() => item.screen && navigation.navigate(item.screen as any)}
+                onPress={() => {
+                  if (item.onPress) {
+                    item.onPress();
+                  } else if (item.screen) {
+                    navigation.navigate(item.screen as any);
+                  }
+                }}
               >
                 <View style={styles.settingItemLeft}>
                   <Ionicons name={item.icon} size={24} color={Colors.text} />

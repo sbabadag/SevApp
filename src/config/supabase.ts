@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Get Supabase URL and Anon Key from environment variables
 // For Expo, these are loaded from .env file or app.json extra section
@@ -24,13 +25,55 @@ function getSupabaseClient(): SupabaseClient {
       );
     }
 
+    // Custom storage adapter for React Native using AsyncStorage
+    // AsyncStorage can handle larger values (no 2048 byte limit like SecureStore)
+    // This ensures sessions are properly persisted for auto-login
+    let firstRetrieval = true;
+    const storageAdapter = {
+      getItem: async (key: string): Promise<string | null> => {
+        try {
+          const value = await AsyncStorage.getItem(key);
+          // Only log on first retrieval to reduce noise
+          if (value && firstRetrieval) {
+            console.log('📦 Storage: Retrieved session from AsyncStorage');
+            firstRetrieval = false;
+          }
+          return value;
+        } catch (error) {
+          console.error('❌ Storage getItem error:', error);
+          return null;
+        }
+      },
+      setItem: async (key: string, value: string): Promise<void> => {
+        try {
+          await AsyncStorage.setItem(key, value);
+          console.log('✅ Storage: Session saved to AsyncStorage (', value.length, 'bytes)');
+          console.log('✅ Storage: Auto-login will work on next app launch');
+        } catch (error) {
+          console.error('❌ Storage setItem error:', error);
+          throw error; // Re-throw to let Supabase know storage failed
+        }
+      },
+      removeItem: async (key: string): Promise<void> => {
+        try {
+          await AsyncStorage.removeItem(key);
+          console.log('✅ Storage: Session removed from AsyncStorage');
+        } catch (error) {
+          console.error('❌ Storage removeItem error:', error);
+        }
+      },
+    };
+
     supabaseInstance = createClient(finalUrl, finalKey, {
       auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: false,
+        autoRefreshToken: true, // Automatically refresh tokens when they expire
+        persistSession: true, // CRITICAL: Save session to device storage for auto-login
+        detectSessionInUrl: false, // Don't detect session in URL (React Native)
+        storage: storageAdapter, // Use AsyncStorage for session persistence (handles large values)
       },
     });
+    
+    console.log('✅ Supabase client initialized with session persistence enabled');
 
     return supabaseInstance;
   } catch (error) {

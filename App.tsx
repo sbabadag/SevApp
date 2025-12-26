@@ -1,13 +1,15 @@
 // Import polyfills FIRST - must be before any other imports
 import './polyfill';
 
-import React, { ErrorInfo, ReactNode } from 'react';
+import React, { ErrorInfo, ReactNode, useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Text, Platform } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import AppNavigator from './src/navigation/AppNavigator';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { Colors } from './src/constants/theme';
+import { registerForPushNotificationsAsync, setupNotificationListeners } from './src/utils/notifications';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -43,9 +45,64 @@ class ErrorBoundary extends React.Component<{ children: ReactNode }, ErrorBounda
 }
 
 function AppContent(): JSX.Element {
-  try {
-    const { loading } = useAuth();
+  const { loading, user } = useAuth();
+  const notificationListener = useRef<Notifications.Subscription>();
+  const responseListener = useRef<Notifications.Subscription>();
 
+  useEffect(() => {
+    let isMounted = true;
+    let cleanup: (() => void) | undefined;
+
+    // Register for push notifications when user is logged in
+    // This MUST be called to request notification permissions
+    if (user) {
+      console.log('🔔 App: User logged in, requesting notification permissions...');
+      registerForPushNotificationsAsync()
+        .then((token) => {
+          if (token && isMounted) {
+            console.log('✅ Push notification token registered:', token);
+            console.log('📋 Copy this token to test notifications:');
+            console.log('   node scripts/testNotification.js', token);
+          } else if (isMounted) {
+            console.warn('⚠️ App: No push token received - permissions may have been denied');
+          }
+        })
+        .catch((error) => {
+          console.error('❌ App: Error registering for push notifications:', error);
+        });
+
+      // Set up notification listeners
+      cleanup = setupNotificationListeners(
+        (notification) => {
+          const content = notification.request.content;
+          console.log('Notification received in foreground:', {
+            title: content.title,
+            body: content.body,
+            sound: content.sound,
+          });
+          // Sound should play automatically via the notification handler
+        },
+        (response) => {
+          console.log('Notification tapped:', response);
+          // Handle notification tap - you can navigate to specific screen here
+          const data = response.notification.request.content.data;
+          if (data?.notificationId) {
+            // Navigate to notification detail or mark as read
+            console.log('Notification ID:', data.notificationId);
+          }
+        }
+      );
+    } else {
+      console.log('ℹ️ App: No user logged in, skipping notification registration');
+    }
+
+    return () => {
+      isMounted = false;
+      if (cleanup) cleanup();
+    };
+  }, [user]);
+
+  try {
     if (loading) {
       return (
         <View style={styles.loadingContainer}>

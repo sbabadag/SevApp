@@ -1,41 +1,17 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography, BorderRadius } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { NavigationProp, Notification } from '../types';
+import { useNotifications } from '../hooks/useNotifications';
 
 interface NotificationsScreenProps {
   navigation: NavigationProp<'Notifications'>;
 }
 
 const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation }) => {
-  const notifications: Notification[] = [
-    {
-      id: 1,
-      title: 'Order Shipped',
-      message: 'Your order #12345 has been shipped',
-      time: '2 hours ago',
-      type: 'order',
-      read: false,
-    },
-    {
-      id: 2,
-      title: 'New Arrival',
-      message: 'Check out our new summer collection',
-      time: '5 hours ago',
-      type: 'promotion',
-      read: false,
-    },
-    {
-      id: 3,
-      title: 'Order Delivered',
-      message: 'Your order #12344 has been delivered',
-      time: '1 day ago',
-      type: 'order',
-      read: true,
-    },
-  ];
+  const { notifications, loading, markAsRead, markAllAsRead, refreshNotifications } = useNotifications();
 
   const getIcon = (type: Notification['type']): keyof typeof Ionicons.glyphMap => {
     switch (type) {
@@ -55,18 +31,40 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
           <Ionicons name="arrow-back" size={24} color={Colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>
-        <TouchableOpacity>
-          <Text style={styles.markAllRead}>Mark all read</Text>
+        <TouchableOpacity onPress={markAllAsRead} disabled={notifications.length === 0 || notifications.every(n => n.read)}>
+          <Text style={[styles.markAllRead, (notifications.length === 0 || notifications.every(n => n.read)) && styles.markAllReadDisabled]}>
+            Mark all read
+          </Text>
         </TouchableOpacity>
       </View>
-      <FlatList
-        data={notifications}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.list}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[styles.notificationCard, !item.read && styles.unreadCard]}
-          >
+      {loading && notifications.length === 0 ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Loading notifications...</Text>
+        </View>
+      ) : notifications.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="notifications-outline" size={64} color={Colors.textSecondary} />
+          <Text style={styles.emptyText}>No notifications yet</Text>
+          <Text style={styles.emptySubtext}>You'll see updates about your orders and promotions here</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={notifications}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl
+              refreshing={loading}
+              onRefresh={refreshNotifications}
+              colors={[Colors.primary]}
+            />
+          }
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[styles.notificationCard, !item.read && styles.unreadCard]}
+              onPress={() => !item.read && markAsRead(item.id)}
+            >
             <View style={styles.iconContainer}>
               <Ionicons name={getIcon(item.type)} size={24} color={Colors.primary} />
             </View>
@@ -81,6 +79,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
           </TouchableOpacity>
         )}
       />
+      )}
     </SafeAreaView>
   );
 };
@@ -159,6 +158,36 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: Colors.primary,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  loadingText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xl,
+  },
+  emptyText: {
+    ...Typography.h3,
+    color: Colors.text,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
+  },
+  emptySubtext: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  markAllReadDisabled: {
+    opacity: 0.5,
   },
 });
 

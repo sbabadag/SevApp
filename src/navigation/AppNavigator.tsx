@@ -5,6 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/theme';
 import { RootStackParamList, HomeStackParamList, ProductsStackParamList, CartStackParamList, ProfileStackParamList } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 // Import screens
 import HomeScreen from '../screens/HomeScreen';
@@ -61,6 +62,11 @@ const HomeStack = () => (
     <HomeStackNavigator.Screen 
       name="Categories" 
       component={CategoriesScreen}
+      options={{ headerShown: false }}
+    />
+    <HomeStackNavigator.Screen 
+      name="Notifications" 
+      component={NotificationsScreen}
       options={{ headerShown: false }}
     />
   </HomeStackNavigator.Navigator>
@@ -193,9 +199,27 @@ const MainTabs = () => (
 );
 
 const AppNavigator = (): JSX.Element => {
+  const { user, loading } = useAuth();
+
+  // Determine initial route based on auth state
+  const getInitialRouteName = (): keyof RootStackParamList => {
+    if (loading) {
+      return 'Splash'; // Show splash while checking auth
+    }
+    if (user) {
+      console.log('✅ AppNavigator: User logged in, initial route: Main');
+      return 'Main'; // User is logged in, go to main app
+    }
+    console.log('ℹ️ AppNavigator: No user, initial route: Splash');
+    return 'Splash'; // No user, show splash which will navigate to Onboarding
+  };
+
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator 
+        initialRouteName={getInitialRouteName()}
+        screenOptions={{ headerShown: false }}
+      >
         <Stack.Screen name="Splash" component={SplashScreen} />
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />

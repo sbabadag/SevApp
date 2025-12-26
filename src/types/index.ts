@@ -34,6 +34,7 @@ export type HomeStackParamList = {
   Products: { category?: string };
   Search: undefined;
   Categories: { category?: string };
+  Notifications: undefined;
 };
 
 export type ProductsStackParamList = {

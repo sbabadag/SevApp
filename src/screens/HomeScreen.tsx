@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { ProductCard } from '../components/ProductCard';
 import { Colors, Spacing, Typography } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +9,7 @@ import { NavigationProp, Product, Category } from '../types';
 import { productService } from '../services/productService';
 import { categoryService } from '../services/categoryService';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../hooks/useNotifications';
 
 const { width } = Dimensions.get('window');
 
@@ -23,6 +25,7 @@ interface Banner {
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const { user } = useAuth();
+  const { unreadCount, refreshNotifications } = useNotifications();
   const [searchQuery] = useState<string>('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
@@ -32,6 +35,13 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Refresh notifications when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      refreshNotifications();
+    }, [refreshNotifications])
+  );
 
   const loadData = async () => {
     setLoading(true);
@@ -98,7 +108,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 onPress={() => navigation.navigate('Notifications')}
               >
                 <Ionicons name="notifications-outline" size={24} color={Colors.text} />
-                <View style={styles.badge} />
+                {unreadCount > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+                  </View>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -265,12 +279,23 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.primary,
+    top: -4,
+    right: -4,
+    backgroundColor: Colors.error,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: Colors.white,
+  },
+  badgeText: {
+    ...Typography.caption,
+    color: Colors.white,
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   searchBar: {
     flexDirection: 'row',
