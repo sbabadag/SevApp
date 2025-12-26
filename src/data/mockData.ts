@@ -1,0 +1,127 @@
+// Mock data for development and testing
+import { Product, Category, Order } from '../types';
+
+export const mockProducts: Product[] = [
+  {
+    id: 1,
+    name: 'Classic White Shirt',
+    price: 29.99,
+    originalPrice: 39.99,
+    image: 'https://via.placeholder.com/300',
+    images: [
+      'https://via.placeholder.com/400',
+      'https://via.placeholder.com/400',
+      'https://via.placeholder.com/400',
+    ],
+    description: 'A classic white shirt perfect for any occasion. Made from premium cotton fabric.',
+    category: 'Men',
+    sizes: ['S', 'M', 'L', 'XL'],
+    colors: ['#FFFFFF', '#000000', '#FF6B6B'],
+    isFavorite: false,
+    discount: 25,
+    rating: 4.5,
+    reviews: 120,
+    inStock: true,
+  },
+  {
+    id: 2,
+    name: 'Denim Jacket',
+    price: 59.99,
+    originalPrice: 79.99,
+    image: 'https://via.placeholder.com/300',
+    images: [
+      'https://via.placeholder.com/400',
+      'https://via.placeholder.com/400',
+      'https://via.placeholder.com/400',
+    ],
+    description: 'Stylish denim jacket with a modern fit. Perfect for casual wear.',
+    category: 'Men',
+    sizes: ['S', 'M', 'L', 'XL'],
+    colors: ['#000000', '#1E3A8A'],
+    isFavorite: true,
+    discount: 25,
+    rating: 4.8,
+    reviews: 89,
+    inStock: true,
+  },
+  {
+    id: 3,
+    name: 'Summer Dress',
+    price: 49.99,
+    image: 'https://via.placeholder.com/300',
+    images: [
+      'https://via.placeholder.com/400',
+      'https://via.placeholder.com/400',
+      'https://via.placeholder.com/400',
+    ],
+    description: 'Beautiful summer dress with floral pattern. Light and comfortable.',
+    category: 'Women',
+    sizes: ['S', 'M', 'L'],
+    colors: ['#FF6B6B', '#4ECDC4', '#FFE66D'],
+    isFavorite: false,
+    rating: 4.3,
+    reviews: 156,
+    inStock: true,
+  },
+  {
+    id: 4,
+    name: 'Sneakers',
+    price: 89.99,
+    originalPrice: 119.99,
+    image: 'https://via.placeholder.com/300',
+    images: [
+      'https://via.placeholder.com/400',
+      'https://via.placeholder.com/400',
+      'https://via.placeholder.com/400',
+    ],
+    description: 'Comfortable sneakers for everyday wear. Available in multiple colors.',
+    category: 'Shoes',
+    sizes: ['7', '8', '9', '10', '11'],
+    colors: ['#FFFFFF', '#000000', '#FF6B6B'],
+    isFavorite: false,
+    discount: 25,
+    rating: 4.7,
+    reviews: 234,
+    inStock: true,
+  },
+];
+
+export const mockCategories: Category[] = [
+  { id: 1, name: 'All', icon: 'grid-outline', count: 500 },
+  { id: 2, name: 'Men', icon: 'shirt-outline', count: 120 },
+  { id: 3, name: 'Women', icon: 'woman-outline', count: 150 },
+  { id: 4, name: 'Kids', icon: 'happy-outline', count: 80 },
+  { id: 5, name: 'Shoes', icon: 'walk-outline', count: 90 },
+  { id: 6, name: 'Accessories', icon: 'briefcase-outline', count: 60 },
+];
+
+export const mockOrders: Order[] = [
+  {
+    id: '12345',
+    date: '2024-01-15',
+    status: 'Delivered',
+    items: [
+      { id: 1, name: 'Classic White Shirt', quantity: 2, price: 29.99 },
+      { id: 2, name: 'Denim Jacket', quantity: 1, price: 59.99 },
+    ],
+    subtotal: 119.97,
+    shipping: 10.00,
+    tax: 9.60,
+    total: 139.57,
+    address: '123 Main St, City, State 12345',
+  },
+  {
+    id: '12346',
+    date: '2024-01-10',
+    status: 'Processing',
+    items: [
+      { id: 3, name: 'Summer Dress', quantity: 1, price: 49.99 },
+    ],
+    subtotal: 49.99,
+    shipping: 10.00,
+    tax: 4.00,
+    total: 63.99,
+    address: '123 Main St, City, State 12345',
+  },
+];
+
