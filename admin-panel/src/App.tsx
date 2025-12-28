@@ -22,11 +22,30 @@ const getBasePath = () => {
   return '/';
 };
 
+// Component to check for OAuth callback in hash and redirect
+const OAuthHashHandler = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Check if we have OAuth tokens in the hash
+    const hash = window.location.hash;
+    if (hash.includes('access_token=')) {
+      // We have OAuth tokens, navigate to callback route
+      // This preserves the hash for OAuthCallback to process
+      navigate('/auth/callback' + window.location.search + hash, { replace: true });
+    }
+  }, [navigate, location]);
+
+  return null;
+};
+
 function App() {
   try {
     return (
       <AuthProvider>
         <BrowserRouter basename={getBasePath()}>
+          <OAuthHashHandler />
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/auth/callback" element={<OAuthCallback />} />
