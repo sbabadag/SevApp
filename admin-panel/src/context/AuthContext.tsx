@@ -11,6 +11,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signInWithGoogle: () => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
 
@@ -65,6 +66,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return { error };
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      // Get the current origin for redirect URL
+      const redirectTo = `${window.location.origin}/auth/callback`;
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectTo,
+        },
+      });
+
+      if (error) {
+        console.error('Google sign in error:', error);
+        return { error };
+      }
+
+      // OAuth will redirect to the callback URL
+      // The callback will be handled by the app routing
+      return { error: null };
+    } catch (error: any) {
+      console.error('Google sign in exception:', error);
+      return { error };
+    }
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -76,6 +103,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     session,
     loading,
     signIn,
+    signInWithGoogle,
     signOut,
   };
 
