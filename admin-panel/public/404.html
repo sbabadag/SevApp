@@ -2,32 +2,24 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/SevApp/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin Panel</title>
     <script>
-      // Handle 404 redirects for GitHub Pages SPA routing
-      // If the path contains /auth/callback or hash contains access_token, redirect to /auth/callback
-      // Otherwise, redirect to index.html
+      // Redirect all 404s to index.html for React Router to handle
+      // This is necessary for GitHub Pages SPA routing
       var path = window.location.pathname;
       var hash = window.location.hash;
       var search = window.location.search;
       var basePath = '/SevApp/';
       
-      // Check if this is an OAuth callback (has access_token in hash)
-      if (hash.includes('access_token=') || path.includes('/auth/callback')) {
-        // Redirect to /auth/callback route with hash preserved
-        var callbackPath = basePath + 'auth/callback';
-        window.location.replace(callbackPath + search + hash);
-      } else if (!path.endsWith('index.html') && !path.endsWith('/')) {
-        // Regular 404, redirect to index.html
-        window.location.replace(basePath + 'index.html' + search + hash);
-      }
+      // Always redirect to index.html, preserving hash and search params
+      // React Router will handle the routing based on the path
+      window.location.replace(basePath + 'index.html' + search + hash);
     </script>
   </head>
   <body>
-    <div id="root"></div>
-    <!-- 404.html should redirect, not load the app directly -->
-    <!-- The redirect script above will handle routing -->
+    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+      <p>Redirecting...</p>
+    </div>
   </body>
 </html>
