@@ -1,5 +1,5 @@
 import React from 'react';
-import { Campaign } from '../pages/Campaigns';
+import type { Campaign } from '../pages/Campaigns';
 
 interface CampaignListProps {
   campaigns: Campaign[];

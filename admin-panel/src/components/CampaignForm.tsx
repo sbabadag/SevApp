@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../config/supabase';
-import { Campaign } from '../pages/Campaigns';
+import type { Campaign } from '../pages/Campaigns';
 
 interface CampaignFormProps {
   campaign?: Campaign | null;
