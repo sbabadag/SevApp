@@ -22,6 +22,7 @@ interface Banner {
   id: number;
   image: string;
   title: string;
+  subtitle?: string;
 }
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
@@ -33,11 +34,40 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [newArrivals, setNewArrivals] = useState<Product[]>([]);
+  const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
 
   useEffect(() => {
     loadData();
+
+    // Subscribe to real-time campaign changes
+    let unsubscribe: (() => void) | null = null;
+
+    campaignService.subscribeToCampaigns(async () => {
+      console.log('HomeScreen: Campaign updated, refreshing...');
+      // Reload campaigns when they change
+      const { data: campaignsData } = await campaignService.getCampaigns();
+      if (campaignsData) {
+        const campaignBanners: Banner[] = campaignsData.map((campaign) => ({
+          id: campaign.id,
+          image: campaign.image_url,
+          title: campaign.title,
+          subtitle: campaign.subtitle,
+        }));
+        setBanners(campaignBanners);
+      }
+    }).then((cleanup) => {
+      unsubscribe = cleanup;
+    }).catch((error) => {
+      console.error('HomeScreen: Error subscribing to campaigns:', error);
+    });
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, []);
 
   // Refresh notifications only when screen comes into focus (not on scroll)
@@ -110,7 +140,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         )}
         <View style={styles.bannerOverlay}>
           <Text style={styles.bannerTitle}>{banner.title}</Text>
-          <Text style={styles.bannerSubtitle}>Up to 50% OFF</Text>
+          <Text style={styles.bannerSubtitle}>{banner.subtitle || 'Special Offer'}</Text>
         </View>
       </View>
     );
