@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../config/supabase';
 import { ProductForm } from '../components/ProductForm';
 import { ProductList } from '../components/ProductList';
+import { Navigation } from '../components/Navigation';
 
 interface Product {
   id: number;
