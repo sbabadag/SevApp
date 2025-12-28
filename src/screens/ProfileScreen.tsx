@@ -1,9 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography, BorderRadius } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { NavigationProp } from '../types';
+import { useAuth } from '../context/AuthContext';
+import { CommonActions } from '@react-navigation/native';
 
 interface ProfileScreenProps {
   navigation: NavigationProp<'ProfileMain'>;
@@ -17,6 +19,35 @@ interface MenuItem {
 }
 
 const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
+  const { user, signOut } = useAuth();
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            await signOut();
+            // Reset navigation stack and navigate to Splash
+            navigation.dispatch(
+              CommonActions.reset({
+                index: 0,
+                routes: [{ name: 'Splash' }],
+              })
+            );
+          },
+        },
+      ]
+    );
+  };
+
   const menuItems: MenuItem[] = [
     { id: 1, title: 'My Orders', icon: 'briefcase-outline', screen: 'Orders' },
     { id: 2, title: 'Wishlist', icon: 'heart-outline', screen: 'Wishlist' },
@@ -44,8 +75,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
             source={{ uri: 'https://via.placeholder.com/100' }}
             style={styles.avatar}
           />
-          <Text style={styles.userName}>John Doe</Text>
-          <Text style={styles.userEmail}>john.doe@example.com</Text>
+          <Text style={styles.userName}>{user?.user_metadata?.full_name || user?.email || 'Guest'}</Text>
+          <Text style={styles.userEmail}>{user?.email || ''}</Text>
           <TouchableOpacity style={styles.editButton}>
             <Text style={styles.editButtonText}>Edit Profile</Text>
           </TouchableOpacity>
@@ -87,7 +118,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
         </View>
 
         {/* Logout */}
-        <TouchableOpacity style={styles.logoutButton}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={24} color={Colors.error} />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
