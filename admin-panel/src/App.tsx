@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { OAuthCallback } from './components/OAuthCallback';
@@ -29,7 +30,6 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/auth/callback" element={<OAuthCallback />} />
-            <Route path="/index.html" element={<OAuthCallback />} />
             <Route
               path="/dashboard"
               element={
