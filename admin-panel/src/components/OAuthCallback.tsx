@@ -57,14 +57,16 @@ export const OAuthCallback: React.FC = () => {
           console.log('OAuthCallback: Session set successfully:', !!sessionData.session);
           console.log('OAuthCallback: User:', sessionData.session?.user?.email);
 
-          // Clear the hash from URL
-          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+          // Clear the hash from URL immediately
+          const basePath = window.location.pathname.replace('/auth/callback', '');
+          const cleanPath = basePath || '/SevApp/';
+          window.history.replaceState(null, '', cleanPath + window.location.search);
 
           // Wait a moment for auth state to update, then navigate
           setTimeout(() => {
             console.log('OAuthCallback: Navigating to dashboard...');
             navigate('/dashboard', { replace: true });
-          }, 1000);
+          }, 500);
         } catch (err: any) {
           console.error('OAuthCallback: Callback error:', err);
           navigate('/login?error=' + encodeURIComponent(err.message || 'Authentication failed'));
