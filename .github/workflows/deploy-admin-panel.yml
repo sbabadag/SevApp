@@ -32,9 +32,10 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./admin-panel
-        run: npm ci
+        run: npm install
 
       - name: Build
+        working-directory: ./admin-panel
         run: npm run build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
