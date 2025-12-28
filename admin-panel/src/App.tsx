@@ -1,11 +1,11 @@
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { OAuthCallback } from './components/OAuthCallback';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Products } from './pages/Products';
 import { Campaigns } from './pages/Campaigns';
-import { useEffect } from 'react';
 
 // Get base path for GitHub Pages
 const getBasePath = () => {
@@ -19,34 +19,6 @@ const getBasePath = () => {
     }
   }
   return '/';
-};
-
-// Handle OAuth callback
-const OAuthCallback = () => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    // Wait a bit for Supabase to process the OAuth callback
-    const timer = setTimeout(() => {
-      if (user) {
-        navigate('/dashboard');
-      } else {
-        navigate('/login');
-      }
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [user, navigate]);
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-        <p className="mt-4 text-gray-600">Completing sign in...</p>
-      </div>
-    </div>
-  );
 };
 
 function App() {
