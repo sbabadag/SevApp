@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../config/supabase';
 import { CampaignForm } from '../components/CampaignForm';
 import { CampaignList } from '../components/CampaignList';
+import { Navigation } from '../components/Navigation';
 
 export interface Campaign {
   id: number;
