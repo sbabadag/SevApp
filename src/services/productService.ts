@@ -7,6 +7,29 @@ interface ProductWithImages extends Product {
   colors?: string[];
 }
 
+// Helper function to ensure image URL is not empty
+// Returns null for invalid URLs so components can handle fallback UI
+function ensureImageUrl(url: string | null | undefined): string | null {
+  if (url && url.trim() !== '' && url.trim() !== 'null' && url.trim() !== 'undefined') {
+    return url;
+  }
+  return null; // Return null to indicate no valid image
+}
+
+// Helper function to process product images
+function processProductImages(productImages: any[], mainImage: string): string[] {
+  const additionalImages = (productImages || [])
+    .map((img: any) => img.image_url)
+    .filter((url: string) => url && url.trim() !== '' && !url.includes('via.placeholder.com') && !url.includes('placeholder'));
+  
+  if (additionalImages.length > 0) {
+    return additionalImages.sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0));
+  }
+  
+  const mainImageUrl = ensureImageUrl(mainImage);
+  return mainImageUrl ? [mainImageUrl] : [];
+}
+
 class ProductService {
   /**
    * Get all products with optional filters
@@ -59,21 +82,26 @@ class ProductService {
 
       if (error) throw error;
 
-      const products: Product[] = (data || []).map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        originalPrice: item.original_price,
-        image: item.image_url,
-        images: item.product_images?.map((img: any) => img.image_url).sort((a: any, b: any) => a.display_order - b.display_order) || [item.image_url],
-        description: item.description,
-        category: item.categories?.name,
-        isFavorite: false, // Will be set based on wishlist
-        discount: item.discount_percentage,
-        rating: item.rating,
-        reviews: item.review_count,
-        inStock: item.in_stock,
-      }));
+      const products: Product[] = (data || []).map((item: any) => {
+        const mainImage = ensureImageUrl(item.image_url) || '';
+        const allImages = processProductImages(item.product_images || [], item.image_url || '');
+        
+        return {
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          originalPrice: item.original_price,
+          image: mainImage,
+          images: allImages,
+          description: item.description,
+          category: item.categories?.name,
+          isFavorite: false, // Will be set based on wishlist
+          discount: item.discount_percentage,
+          rating: item.rating,
+          reviews: item.review_count,
+          inStock: item.in_stock,
+        };
+      });
 
       return { data: products, error: null };
     } catch (error) {
@@ -126,13 +154,16 @@ class ProductService {
       const sizes = [...new Set((data.product_variants || []).map((v: any) => v.size).filter(Boolean))];
       const colors = [...new Set((data.product_variants || []).map((v: any) => v.color).filter(Boolean))];
 
+      const mainImage = ensureImageUrl(data.image_url) || '';
+      const allImages = processProductImages(data.product_images || [], data.image_url || '');
+
       const product: ProductWithImages = {
         id: data.id,
         name: data.name,
         price: data.price,
         originalPrice: data.original_price,
-        image: data.image_url,
-        images: data.product_images?.map((img: any) => img.image_url).sort((a: any, b: any) => a.display_order - b.display_order) || [data.image_url],
+        image: mainImage,
+        images: allImages,
         description: data.description,
         category: data.categories?.name,
         sizes: sizes.length > 0 ? sizes : undefined,
@@ -174,21 +205,26 @@ class ProductService {
 
       if (error) throw error;
 
-      const products: Product[] = (data || []).map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        originalPrice: item.original_price,
-        image: item.image_url,
-        images: item.product_images?.map((img: any) => img.image_url).sort((a: any, b: any) => a.display_order - b.display_order) || [item.image_url],
-        description: item.description,
-        category: item.categories?.name,
-        isFavorite: false,
-        discount: item.discount_percentage,
-        rating: item.rating,
-        reviews: item.review_count,
-        inStock: item.in_stock,
-      }));
+      const products: Product[] = (data || []).map((item: any) => {
+        const mainImage = ensureImageUrl(item.image_url) || '';
+        const allImages = processProductImages(item.product_images || [], item.image_url || '');
+        
+        return {
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          originalPrice: item.original_price,
+          image: mainImage,
+          images: allImages,
+          description: item.description,
+          category: item.categories?.name,
+          isFavorite: false,
+          discount: item.discount_percentage,
+          rating: item.rating,
+          reviews: item.review_count,
+          inStock: item.in_stock,
+        };
+      });
 
       return { data: products, error: null };
     } catch (error) {
@@ -220,21 +256,26 @@ class ProductService {
 
       if (error) throw error;
 
-      const products: Product[] = (data || []).map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        originalPrice: item.original_price,
-        image: item.image_url,
-        images: item.product_images?.map((img: any) => img.image_url).sort((a: any, b: any) => a.display_order - b.display_order) || [item.image_url],
-        description: item.description,
-        category: item.categories?.name,
-        isFavorite: false,
-        discount: item.discount_percentage,
-        rating: item.rating,
-        reviews: item.review_count,
-        inStock: item.in_stock,
-      }));
+      const products: Product[] = (data || []).map((item: any) => {
+        const mainImage = ensureImageUrl(item.image_url) || '';
+        const allImages = processProductImages(item.product_images || [], item.image_url || '');
+        
+        return {
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          originalPrice: item.original_price,
+          image: mainImage,
+          images: allImages,
+          description: item.description,
+          category: item.categories?.name,
+          isFavorite: false,
+          discount: item.discount_percentage,
+          rating: item.rating,
+          reviews: item.review_count,
+          inStock: item.in_stock,
+        };
+      });
 
       return { data: products, error: null };
     } catch (error) {
@@ -245,4 +286,3 @@ class ProductService {
 }
 
 export const productService = new ProductService();
-

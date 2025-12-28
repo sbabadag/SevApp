@@ -105,3 +105,5 @@ If this is not working, the issue is likely device settings, not code.
 3. Reinstall the app
 4. Check Android version compatibility (Android 8.0+ uses notification channels)
 
+
+

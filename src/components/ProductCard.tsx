@@ -12,6 +12,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 }) => {
   const { name, price, originalPrice, image, isFavorite, discount } = product;
 
+  // Check if image URL is valid
+  const hasValidImage = image && image.trim() !== '' && 
+    !image.includes('via.placeholder.com') && 
+    !image.includes('placeholder');
+
   return (
     <TouchableOpacity
       style={[styles.container, style]}
@@ -19,7 +24,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       activeOpacity={0.7}
     >
       <View style={styles.imageContainer}>
-        <Image source={{ uri: image }} style={styles.image} />
+        {hasValidImage ? (
+          <Image 
+            source={{ uri: image }} 
+            style={styles.image}
+            onError={(e) => {
+              console.warn('Failed to load product image:', image);
+            }}
+          />
+        ) : (
+          <View style={[styles.image, styles.placeholderImage]}>
+            <Ionicons name="image-outline" size={48} color={Colors.textSecondary} />
+            <Text style={styles.placeholderText}>No Image</Text>
+          </View>
+        )}
         {discount && (
           <View style={styles.discountBadge}>
             <Text style={styles.discountText}>-{discount}%</Text>
@@ -111,6 +129,16 @@ const styles = StyleSheet.create({
     ...Typography.bodySmall,
     color: Colors.textSecondary,
     textDecorationLine: 'line-through',
+  },
+  placeholderImage: {
+    backgroundColor: Colors.lightGray,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  placeholderText: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
   },
 });
 

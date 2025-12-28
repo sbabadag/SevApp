@@ -89,3 +89,5 @@ Eğer hala izin isteği görünmüyorsa:
 - Android 13+ için bildirim izinleri ayrı bir izin olarak istenir
 - Uygulama ilk açılışta izin isteyebilir, bu normaldir
 
+
+

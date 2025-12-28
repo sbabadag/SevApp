@@ -183,3 +183,5 @@ Your current setup:
 2. Notification appears
 3. Sound plays (or check if vibration works)
 
+
+

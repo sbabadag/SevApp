@@ -19,11 +19,9 @@
       "bundleIdentifier": "com.sevapp.app"
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
       "package": "com.sevapp.app",
+      "compileSdkVersion": 34,
+      "targetSdkVersion": 34,
       "permissions": [
         "RECEIVE_BOOT_COMPLETED"
       ]
@@ -32,7 +30,6 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon.png",
           "color": "#ffffff",
           "sounds": [
             "./assets/noti.mp3"
@@ -45,11 +42,12 @@
     },
     "scheme": "exp",
     "extra": {
-      "supabaseUrl": "${EXPO_PUBLIC_SUPABASE_URL}",
-      "supabaseAnonKey": "${EXPO_PUBLIC_SUPABASE_ANON_KEY}",
+      "supabaseUrl": "https://isoydimyquabqfrezuuc.supabase.co",
+      "supabaseAnonKey": "sb_publishable_aNWSLMDoVdG2eo3Py9kPsg_KbrmIAyD",
       "eas": {
-        "projectId": "36f9875b-b881-4688-8a85-2792a9aeebad"
+        "projectId": "711bd314-9a29-4cbe-a96d-bbc1e39b5991"
       }
-    }
+    },
+    "owner": "cesbabadag"
   }
 }

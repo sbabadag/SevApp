@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
+import { CommonActions } from '@react-navigation/native';
 import { ProductCard } from '../components/ProductCard';
 import { Colors, Spacing, Typography } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,22 +27,25 @@ interface Banner {
 const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const { user } = useAuth();
   const { unreadCount, refreshNotifications } = useNotifications();
+  const isFocused = useIsFocused();
+  const rootNavigation = useNavigation();
   const [searchQuery] = useState<string>('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [newArrivals, setNewArrivals] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
 
   useEffect(() => {
     loadData();
   }, []);
 
-  // Refresh notifications when screen comes into focus
-  useFocusEffect(
-    React.useCallback(() => {
+  // Refresh notifications only when screen comes into focus (not on scroll)
+  useEffect(() => {
+    if (isFocused) {
       refreshNotifications();
-    }, [refreshNotifications])
-  );
+    }
+  }, [isFocused, refreshNotifications]);
 
   const loadData = async () => {
     setLoading(true);
@@ -70,10 +74,47 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     }
   };
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadData();
+    await refreshNotifications();
+    setRefreshing(false);
+  }, [refreshNotifications]);
+
   const banners: Banner[] = [
     { id: 1, image: 'https://via.placeholder.com/400x200', title: 'Summer Sale' },
     { id: 2, image: 'https://via.placeholder.com/400x200', title: 'New Collection' },
   ];
+
+  const renderBanner = (banner: Banner) => {
+    const hasValidImage = banner.image && 
+      banner.image.trim() !== '' && 
+      !banner.image.includes('via.placeholder.com') &&
+      !banner.image.includes('placeholder');
+    
+    return (
+      <View key={banner.id} style={styles.banner}>
+        {hasValidImage ? (
+          <Image 
+            source={{ uri: banner.image }} 
+            style={styles.bannerImage}
+            onError={(e) => {
+              console.warn('Failed to load banner image:', banner.image);
+            }}
+          />
+        ) : (
+          <View style={[styles.bannerImage, styles.bannerPlaceholder]}>
+            <Ionicons name="image-outline" size={64} color={Colors.textSecondary} />
+            <Text style={styles.bannerPlaceholderText}>{banner.title}</Text>
+          </View>
+        )}
+        <View style={styles.bannerOverlay}>
+          <Text style={styles.bannerTitle}>{banner.title}</Text>
+          <Text style={styles.bannerSubtitle}>Up to 50% OFF</Text>
+        </View>
+      </View>
+    );
+  };
 
   if (loading) {
     return (
@@ -88,7 +129,17 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[Colors.primary]}
+            tintColor={Colors.primary}
+          />
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerTop}>
@@ -99,9 +150,25 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             <View style={styles.headerIcons}>
               <TouchableOpacity
                 style={styles.iconButton}
-                onPress={() => navigation.navigate('Search')}
+                onPress={() => {
+                  // Navigate to Profile tab - go up two levels: HomeStack -> Tab Navigator
+                  const tabNavigator = navigation.getParent()?.getParent();
+                  if (tabNavigator) {
+                    tabNavigator.navigate('Profile');
+                  } else {
+                    // Fallback: use root navigation with CommonActions
+                    rootNavigation.dispatch(
+                      CommonActions.navigate({
+                        name: 'Main',
+                        params: {
+                          screen: 'Profile',
+                        },
+                      })
+                    );
+                  }
+                }}
               >
-                <Ionicons name="search-outline" size={24} color={Colors.text} />
+                <Ionicons name="person-outline" size={24} color={Colors.text} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.iconButton}
@@ -134,15 +201,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           style={styles.bannerContainer}
           contentContainerStyle={styles.bannerContent}
         >
-          {banners.map((banner) => (
-            <View key={banner.id} style={styles.banner}>
-              <Image source={{ uri: banner.image }} style={styles.bannerImage} />
-              <View style={styles.bannerOverlay}>
-                <Text style={styles.bannerTitle}>{banner.title}</Text>
-                <Text style={styles.bannerSubtitle}>Up to 50% OFF</Text>
-              </View>
-            </View>
-          ))}
+          {banners.map(renderBanner)}
         </ScrollView>
 
         {/* Categories */}
@@ -329,6 +388,16 @@ const styles = StyleSheet.create({
   bannerImage: {
     width: '100%',
     height: '100%',
+  },
+  bannerPlaceholder: {
+    backgroundColor: Colors.lightGray,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bannerPlaceholderText: {
+    ...Typography.h3,
+    color: Colors.textSecondary,
+    marginTop: Spacing.md,
   },
   bannerOverlay: {
     position: 'absolute',

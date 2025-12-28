@@ -1,0 +1,16 @@
+# EAS Build ignore file
+# This file tells EAS Build which files to exclude from the build
+
+# Dependencies are installed by EAS, but we want to include lockfile
+# So we don't ignore package-lock.json
+
+# Ignore these:
+node_modules/
+.expo/
+.expo-shared/
+*.log
+.DS_Store
+
+# Keep package-lock.json for consistent builds
+
+

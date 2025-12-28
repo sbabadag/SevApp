@@ -9,7 +9,7 @@ export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   ForgotPassword: undefined;
-  Main: undefined;
+  Main: { screen?: string; params?: any };
   HomeMain: undefined;
   ProductDetail: { product: Product };
   Products: { category?: string };

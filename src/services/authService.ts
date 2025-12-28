@@ -201,8 +201,12 @@ class AuthService {
    */
   async signInWithGoogle(): Promise<AuthResponse> {
     try {
-      // Get Supabase URL from environment variables
-      const supabaseUrl = (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_SUPABASE_URL) || '';
+      // Get Supabase URL from environment variables (try multiple sources)
+      const supabaseUrl = 
+        (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_SUPABASE_URL) ||
+        Constants.expoConfig?.extra?.supabaseUrl ||
+        Constants.expoConfig?.extra?.EXPO_PUBLIC_SUPABASE_URL ||
+        '';
       
       if (!supabaseUrl || supabaseUrl === 'https://placeholder.supabase.co') {
         return {
@@ -212,33 +216,71 @@ class AuthService {
         };
       }
 
-      // Create redirect URI using expo-auth-session's makeRedirectUri
-      // This generates the correct URL format for OAuth flows
-      const redirectTo = AuthSession.makeRedirectUri({
-        scheme: Constants.expoConfig?.scheme || 'exp',
-        path: 'auth',
-      });
+      // Create redirect URI - PRODUCTION BUILD FIX
+      // For EAS builds (standalone), NEVER use makeRedirectUri - it returns localhost
+      // Always use explicit package name format: com.sevapp.app://auth
+      const isExpoGo = Constants.executionEnvironment === 'storeClient';
+      const isStandalone = Constants.executionEnvironment === 'standalone';
       
-      console.log('Using redirect URL:', redirectTo);
+      // Get package name
+      const packageName = Constants.expoConfig?.android?.package || Constants.expoConfig?.ios?.bundleIdentifier || 'com.sevapp.app';
       
-      // IMPORTANT: This URL must match EXACTLY what's configured in Supabase
-      // Go to: Supabase Dashboard → Authentication → URL Configuration → Redirect URLs
-      // Add this exact URL there
-
-      // Get the OAuth URL from Supabase
+      let redirectTo: string;
+      
+      // ONLY use makeRedirectUri for Expo Go (development with Expo Go app)
+      if (isExpoGo) {
+        // Expo Go: Use makeRedirectUri
+        const scheme = Constants.expoConfig?.scheme || 'exp';
+        redirectTo = AuthSession.makeRedirectUri({
+          scheme: scheme,
+          path: 'auth',
+          usePath: true,
+        });
+        console.log('🔗 OAuth Redirect (Expo Go - Development):');
+        console.log('  Redirect:', redirectTo);
+      } else {
+        // Standalone build OR unknown environment: ALWAYS use package name format
+        // This includes EAS builds which are standalone
+        redirectTo = `${packageName}://auth`;
+        console.log('🔗 OAuth Redirect (Standalone/Production Build):');
+        console.log('  Execution Environment:', Constants.executionEnvironment);
+        console.log('  Package Name:', packageName);
+        console.log('  Using explicit deep link:', redirectTo);
+      }
+      
+      // ABSOLUTE SAFETY CHECK - if redirectTo contains localhost, FORCE production format
+      if (redirectTo.includes('localhost') || redirectTo.includes('3000') || redirectTo.includes('127.0.0.1') || redirectTo.includes('8081')) {
+        redirectTo = `${packageName}://auth`;
+        console.error('❌ CRITICAL: Redirect URL contains localhost/port, forcing production format:', redirectTo);
+      }
+      
+      console.log('✅ Final App Deep Link:', redirectTo);
+      console.log('✅ This will be used to redirect back to app after OAuth');
+      
+      // IMPORTANT: With skipBrowserRedirect: true, we handle the redirect ourselves
+      // Strategy:
+      // 1. Don't specify redirectTo in signInWithOAuth - let Supabase use default callback
+      // 2. Use app deep link in WebBrowser.openAuthSessionAsync - browser will redirect to app
+      // 3. Browser will intercept Supabase callback and redirect to app deep link with tokens
+      console.log('📤 Requesting OAuth URL from Supabase:');
+      console.log('  App Deep Link (for final redirect):', redirectTo);
+      console.log('  Strategy: Supabase will use default callback, browser handles redirect to app');
+      
       const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: redirectTo,
+          // Don't specify redirectTo - Supabase will use its default callback URL
+          // The browser will intercept the callback and redirect to our app deep link
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
           },
-          skipBrowserRedirect: true, // We'll handle the browser redirect ourselves
+          skipBrowserRedirect: true, // We handle the browser redirect ourselves via WebBrowser
         },
       });
 
       if (oauthError || !data?.url) {
+        console.error('❌ Supabase OAuth Error:', oauthError);
         return {
           user: null,
           session: null,
@@ -246,14 +288,42 @@ class AuthService {
         };
       }
 
+      // Log the OAuth URL from Supabase to see what it contains
+      console.log('📥 OAuth URL received from Supabase:');
+      console.log('  Full URL:', data.url);
+      console.log('  Contains localhost?', data.url.includes('localhost'));
+      console.log('  Contains 3000?', data.url.includes('3000'));
+      
+      // Check if Supabase returned a URL with localhost (this would be a Supabase config issue)
+      if (data.url.includes('localhost') || data.url.includes('3000')) {
+        console.error('❌ WARNING: Supabase returned OAuth URL with localhost!');
+        console.error('  This means Supabase is configured with localhost redirect URL');
+        console.error('  Check Supabase Dashboard → Authentication → URL Configuration');
+      }
+
       // Open the OAuth URL in browser
+      // CRITICAL FIX: Don't use WebBrowser.openAuthSessionAsync with returnUrl
+      // Instead, use openBrowserAsync and let Supabase handle the redirect naturally
+      // Then listen for the deep link callback via Linking API
+      console.log('🌐 Opening OAuth URL in browser...');
+      console.log('  OAuth URL:', data.url.substring(0, 100) + '...');
+      console.log('  Strategy: Open browser, Supabase redirects to app deep link automatically');
+      console.log('  App deep link:', redirectTo);
+      
+      // Open browser without returnUrl - let Supabase handle redirect
+      // Supabase will redirect to the redirectTo we specified (but we didn't specify it, so uses default)
+      // Actually, we need to tell Supabase where to redirect, but can't use custom scheme
+      // So we'll use WebBrowser but with a different approach
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
 
       if (result.type === 'success' && result.url) {
+        console.log('✅ OAuth callback received:', result.url.substring(0, 100) + '...');
+        
         // Parse the callback URL to extract tokens
+        // Supabase callback URL format: https://project.supabase.co/auth/v1/callback#access_token=...&refresh_token=...
         const parseQueryParams = (url: string): Record<string, string> => {
           const params: Record<string, string> = {};
-          // Extract hash fragment or query string
+          // Extract hash fragment (Supabase uses hash for OAuth callbacks)
           const hashIndex = url.indexOf('#');
           const queryIndex = url.indexOf('?');
           
@@ -276,6 +346,8 @@ class AuthService {
         };
 
         const params = parseQueryParams(result.url);
+        console.log('📋 Extracted params:', Object.keys(params).join(', '));
+        
         const accessToken = params.access_token;
         const refreshToken = params.refresh_token;
         const error = params.error;

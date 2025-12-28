@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { CommonActions } from '@react-navigation/native';
 import { Button } from '../components/Button';
 import { Colors, Spacing, Typography, BorderRadius } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,6 +30,7 @@ const defaultProduct: Product = {
 
 const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ navigation, route }) => {
   const product = route?.params?.product || defaultProduct;
+  const rootNavigation = useNavigation();
 
   const [selectedSize, setSelectedSize] = useState<string>(product.sizes?.[0] || 'M');
   const [selectedColor, setSelectedColor] = useState<string>(product.colors?.[0] || '#FFFFFF');
@@ -39,7 +42,21 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ navigation, r
 
   const handleAddToCart = (): void => {
     // Add to cart logic
-    navigation.navigate('CartMain');
+    // Navigate to Cart tab - go up two levels: HomeStack -> Tab Navigator
+    const tabNavigator = navigation.getParent()?.getParent();
+    if (tabNavigator) {
+      tabNavigator.navigate('Cart');
+    } else {
+      // Fallback: use root navigation with CommonActions
+      rootNavigation.dispatch(
+        CommonActions.navigate({
+          name: 'Main',
+          params: {
+            screen: 'Cart',
+          },
+        })
+      );
+    }
   };
 
   return (
