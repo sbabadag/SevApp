@@ -1,0 +1,4 @@
+# Backup files should not be committed
+*.sql
+backups/
+

@@ -29,3 +29,9 @@ firebase-adminsdk-*.json
 .vscode/
 .idea/
 
+# Database backups
+backups/
+*.sql
+*.sql.gz
+*.dump
+
