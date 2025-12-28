@@ -10,11 +10,19 @@ export const OAuthCallback: React.FC = () => {
     const handleCallback = async () => {
       console.log('OAuthCallback: Starting callback handling');
       console.log('OAuthCallback: Current URL:', window.location.href);
+      console.log('OAuthCallback: Pathname:', window.location.pathname);
       console.log('OAuthCallback: Hash:', window.location.hash);
       
       // Check URL hash for tokens (Supabase OAuth uses hash fragments)
-      const hash = window.location.hash.substring(1);
-      const hashParams = new URLSearchParams(hash);
+      // Also check if we're on /index.html with hash (GitHub Pages redirect case)
+      let hash = window.location.hash;
+      if (!hash && window.location.pathname.includes('index.html')) {
+        // If we're on index.html but no hash, check if hash was in original URL
+        // This shouldn't happen, but just in case
+        hash = window.location.hash;
+      }
+      
+      const hashParams = new URLSearchParams(hash.substring(1));
       
       const accessToken = hashParams.get('access_token');
       const refreshToken = hashParams.get('refresh_token');

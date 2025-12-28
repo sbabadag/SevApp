@@ -5,22 +5,28 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin Panel</title>
+    <script>
+      // Handle 404 redirects for GitHub Pages SPA routing
+      // If the path contains /auth/callback or hash contains access_token, redirect to /auth/callback
+      // Otherwise, redirect to index.html
+      var path = window.location.pathname;
+      var hash = window.location.hash;
+      var search = window.location.search;
+      var basePath = '/SevApp/';
+      
+      // Check if this is an OAuth callback (has access_token in hash)
+      if (hash.includes('access_token=') || path.includes('/auth/callback')) {
+        // Redirect to /auth/callback route with hash preserved
+        var callbackPath = basePath + 'auth/callback';
+        window.location.replace(callbackPath + search + hash);
+      } else {
+        // Regular 404, redirect to index.html
+        window.location.replace(basePath + 'index.html' + search + hash);
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/SevApp/src/main.tsx"></script>
-    <script>
-      // Redirect to index.html for React Router to handle routing
-      // This ensures all routes work on GitHub Pages
-      var path = window.location.pathname;
-      var basePath = '/SevApp/';
-      var hash = window.location.hash;
-      var search = window.location.search;
-      
-      // If we're not already on index.html, redirect there
-      if (!path.endsWith('index.html') && !path.endsWith('/')) {
-        window.location.replace(basePath + 'index.html' + search + hash);
-      }
-    </script>
   </body>
 </html>
