@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { NavigationProp, Product, Category } from '../types';
 import { productService } from '../services/productService';
 import { categoryService } from '../services/categoryService';
+import { campaignService } from '../services/campaignService';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../hooks/useNotifications';
 
@@ -97,6 +98,18 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       if (newArrivalsData) {
         setNewArrivals(newArrivalsData);
       }
+
+      // Load campaigns/banners
+      const { data: campaignsData } = await campaignService.getCampaigns();
+      if (campaignsData) {
+        const campaignBanners: Banner[] = campaignsData.map((campaign) => ({
+          id: campaign.id,
+          image: campaign.image_url,
+          title: campaign.title,
+          subtitle: campaign.subtitle,
+        }));
+        setBanners(campaignBanners);
+      }
     } catch (error) {
       console.error('Error loading home data:', error);
     } finally {
@@ -111,10 +124,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     setRefreshing(false);
   }, [refreshNotifications]);
 
-  const banners: Banner[] = [
-    { id: 1, image: 'https://via.placeholder.com/400x200', title: 'Summer Sale' },
-    { id: 2, image: 'https://via.placeholder.com/400x200', title: 'New Collection' },
-  ];
+  // Banners are now loaded from Supabase campaigns table
+  // See loadData() function above
 
   const renderBanner = (banner: Banner) => {
     const hasValidImage = banner.image && 
