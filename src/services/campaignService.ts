@@ -22,12 +22,11 @@ class CampaignService {
     try {
       const now = new Date().toISOString();
       
+      // Fetch all active campaigns
       const { data, error } = await supabase
         .from('campaigns')
         .select('*')
         .eq('is_active', true)
-        .or(`start_date.is.null,start_date.lte.${now}`)
-        .or(`end_date.is.null,end_date.gte.${now}`)
         .order('display_order', { ascending: true })
         .order('created_at', { ascending: false });
 
@@ -36,7 +35,22 @@ class CampaignService {
         return { data: null, error };
       }
 
-      return { data: data || [], error: null };
+      // Filter campaigns by date range on client side
+      const activeCampaigns = (data || []).filter((campaign) => {
+        const nowDate = new Date();
+        const startDate = campaign.start_date ? new Date(campaign.start_date) : null;
+        const endDate = campaign.end_date ? new Date(campaign.end_date) : null;
+        
+        // Campaign is active if:
+        // - No start_date or start_date <= now
+        // - AND no end_date or end_date >= now
+        const isAfterStart = !startDate || startDate <= nowDate;
+        const isBeforeEnd = !endDate || endDate >= nowDate;
+        
+        return isAfterStart && isBeforeEnd;
+      });
+
+      return { data: activeCampaigns, error: null };
     } catch (error) {
       console.error('CampaignService: Exception fetching campaigns:', error);
       return { data: null, error };
