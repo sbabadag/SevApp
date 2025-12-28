@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="/SevApp/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin Panel</title>
     <script>
@@ -19,7 +19,7 @@
         // Redirect to /auth/callback route with hash preserved
         var callbackPath = basePath + 'auth/callback';
         window.location.replace(callbackPath + search + hash);
-      } else {
+      } else if (!path.endsWith('index.html') && !path.endsWith('/')) {
         // Regular 404, redirect to index.html
         window.location.replace(basePath + 'index.html' + search + hash);
       }
@@ -27,6 +27,7 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/SevApp/src/main.tsx"></script>
+    <!-- 404.html should redirect, not load the app directly -->
+    <!-- The redirect script above will handle routing -->
   </body>
 </html>
