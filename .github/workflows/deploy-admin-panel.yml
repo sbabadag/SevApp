@@ -32,15 +32,8 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Cache node modules
-        uses: actions/cache@v4
-        with:
-          path: admin-panel/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('admin-panel/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
       - name: Install dependencies
+        working-directory: ./admin-panel
         run: npm ci
 
       - name: Build
