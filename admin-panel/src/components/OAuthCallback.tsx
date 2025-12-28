@@ -28,7 +28,7 @@ export const OAuthCallback: React.FC = () => {
       if (accessToken && refreshToken) {
         try {
           // Set session in Supabase
-          const { data, error: sessionError } = await supabase.auth.setSession({
+          const { error: sessionError } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken,
           });
