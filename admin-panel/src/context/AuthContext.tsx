@@ -70,12 +70,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       // Get the current origin for redirect URL
       // For GitHub Pages, we need to include the base path
-      const basePath = window.location.pathname.split('/').filter(Boolean)[0] || '';
+      let basePath = '';
+      if (window.location.hostname.includes('github.io')) {
+        const pathParts = window.location.pathname.split('/').filter(Boolean);
+        basePath = pathParts[0] || '';
+      }
+      
       const redirectTo = basePath 
         ? `${window.location.origin}/${basePath}/auth/callback`
         : `${window.location.origin}/auth/callback`;
       
       console.log('Google OAuth redirect URL:', redirectTo);
+      console.log('Current location:', window.location.href);
+      console.log('Base path:', basePath);
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
